@@ -1,76 +1,8 @@
 import { processResponse } from "./api";
+import { BASE_URL } from "./constants";
 
-const HOT_WEATHER_THRESHOLD_F = 66;
-const FALLBACK_TEMPERATURE_F = 999;
-const REVERSE_GEOCODE_RESULT_LIMIT = 1;
-
-// Current weather for a coordinate pair (works for any location worldwide).
-export const getWeather = ({ latitude, longitude }, apiKey) => {
+export const getWeather = ({ latitude, longitude }) => {
   return fetch(
-    `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=imperial&appid=${apiKey}`,
+    `${BASE_URL}/weather?lat=${latitude}&lon=${longitude}`
   ).then(processResponse);
-};
-
-// Reverse geocoding gives us a precise city name plus state/country.
-export const reverseGeocode = ({ latitude, longitude }, apiKey) => {
-  return fetch(
-    `https://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=${REVERSE_GEOCODE_RESULT_LIMIT}&appid=${apiKey}`,
-  )
-    .then(processResponse)
-    .then((results) =>
-      Array.isArray(results) ? (results[0] ?? null) : (results ?? null),
-    );
-};
-
-const getCountryName = (countryCode) => {
-  if (!countryCode) return "";
-  try {
-    const regionNames = new Intl.DisplayNames(["en"], { type: "region" });
-    return regionNames.of(countryCode) || countryCode;
-  } catch {
-    return countryCode;
-  }
-};
-
-// Build a human-readable "City, State" (US) or "City, Country" label.
-const buildLocationLabel = ({ city, state, countryCode }) => {
-  if (!city) return "";
-  if (countryCode === "US" && state) {
-    return `${city}, ${state}`;
-  }
-  const countryName = getCountryName(countryCode);
-  return countryName ? `${city}, ${countryName}` : city;
-};
-
-export const filterWeatherData = (data, geo = {}) => {
-  const result = {};
-  // Prefer the geocoder's name (more accurate), fall back to the weather payload.
-  const city = geo?.name || data?.name || "";
-  const countryCode = data?.sys?.country || geo?.country || "";
-  const state = geo?.state || "";
-  const fahrenheitTemperature = Number.isFinite(data?.main?.temp)
-    ? data.main.temp
-    : FALLBACK_TEMPERATURE_F;
-
-  result.city = city;
-  result.state = state;
-  result.country = getCountryName(countryCode);
-  result.countryCode = countryCode;
-  result.location = buildLocationLabel({ city, state, countryCode });
-
-  result.temp = {
-    F: Math.round(fahrenheitTemperature),
-    C: Math.round(((fahrenheitTemperature - 32) * 5) / 9),
-  };
-
-  result.type = getWeatherType(result.temp.F);
-  return result;
-};
-
-const getWeatherType = (temperature) => {
-  if (temperature > HOT_WEATHER_THRESHOLD_F) {
-    return "hot";
-  }
-
-  return "cold";
 };

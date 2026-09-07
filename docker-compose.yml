@@ -16,7 +16,8 @@ services:
     environment:
       MONGO_URI: mongodb://mongodb:27017/weatherfit
       PORT: 5000
-      JWT_SECRET: weatherfit-super-secret-key
+      JWT_SECRET: ${JWT_SECRET}
+      OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY}
     depends_on:
       - mongodb
 

@@ -1,11 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import {
-  getWeather,
-  reverseGeocode,
-  filterWeatherData,
-} from "../utils/weatherApi";
-import { apiKey } from "../utils/constants";
+import { getWeather } from "../utils/weatherApi";
 import {
   DEFAULT_COORDINATES,
   getCurrentPosition,
@@ -35,13 +30,9 @@ export default function useWeather() {
   const isMountedRef = useRef(true);
 
   // Fetch weather + reverse-geocode for a coordinate pair and merge into one object.
-  const loadWeather = useCallback(async (coords) => {
-    const [weather, geo] = await Promise.all([
-      getWeather(coords, apiKey),
-      reverseGeocode(coords, apiKey).catch(() => null),
-    ]);
-    return filterWeatherData(weather, geo ?? {});
-  }, []);
+	const loadWeather = useCallback(async (coords) => {
+  return getWeather(coords);
+}, []);
 
   const fetchForCoordinates = useCallback(
     async (coords, { persist = false, status } = {}) => {

@@ -118,6 +118,71 @@ app.patch("/users/me", authMiddleware, async (req, res) => {
   }
 });
 
+app.get("/weather", async (req, res) => {
+  try {
+    const { lat, lon } = req.query;
+
+    const latitude = Number(lat);
+    const longitude = Number(lon);
+
+    if (
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude) ||
+      latitude < -90 ||
+      latitude > 90 ||
+      longitude < -180 ||
+      longitude > 180
+    ) {
+      return res.status(400).json({
+        message: "Valid latitude and longitude are required",
+      });
+    }
+
+    if (!process.env.OPENWEATHER_API_KEY) {
+      return res.status(500).json({
+        message: "OpenWeather API key is not configured",
+      });
+    }
+
+    const weatherResponse = await fetch(
+      `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=metric&appid=${process.env.OPENWEATHER_API_KEY}`
+    );
+
+    if (!weatherResponse.ok) {
+      const errorBody = await weatherResponse.text();
+
+      console.error("OpenWeather error:", errorBody);
+
+      return res.status(weatherResponse.status).json({
+        message: "Failed to fetch weather data",
+      });
+    }
+
+    const weather = await weatherResponse.json();
+
+    res.json({
+      temp: {
+        C: Math.round(weather.main.temp),
+        F: Math.round((weather.main.temp * 9) / 5 + 32),
+      },
+      city: weather.name || "",
+      country: weather.sys?.country || "",
+      description: weather.weather?.[0]?.description || "",
+      type: weather.main.temp >= 18 ? "hot" : "cold",
+      coordinates: {
+        latitude,
+        longitude,
+      },
+    });
+  } catch (error) {
+    console.error("Weather endpoint error:", error);
+
+    res.status(500).json({
+      message: "Weather service failed",
+    });
+  }
+});
+
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
