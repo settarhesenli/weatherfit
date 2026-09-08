@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: weatherfit-backend
+  namespace: weatherfit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: weatherfit-backend
+  template:
+    metadata:
+      labels:
+        app: weatherfit-backend
+    spec:
+      containers:
+        - name: backend
+          image: weatherfit-backend:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 5000
+          env:
+            - name: MONGO_URI
+              value: mongodb://mongodb:27017/weatherfit
+            - name: PORT
+              value: "5000"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: weatherfit-secrets
+                  key: JWT_SECRET
+            - name: OPENWEATHER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: weatherfit-secrets
+                  key: OPENWEATHER_API_KEY
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: weatherfit-backend
+  namespace: weatherfit
+spec:
+  type: NodePort
+  selector:
+    app: weatherfit-backend
+  ports:
+    - port: 5000
+      targetPort: 5000
+      nodePort: 30500
