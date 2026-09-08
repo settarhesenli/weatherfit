@@ -4,13 +4,9 @@ on:
   push:
     branches: [main]
 
-permissions:
-  contents: read
-  packages: write
-
 jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
+  build-and-deploy:
+    runs-on: self-hosted
 
     steps:
       - name: Checkout
@@ -31,27 +27,16 @@ jobs:
       - name: Build frontend
         run: npm run build
 
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build backend image
+        run: docker build -t weatherfit-backend:latest ./backend
 
-      - name: Build and push backend
-        uses: docker/build-push-action@v6
-        with:
-          context: ./backend
-          push: true
-          tags: |
-            ghcr.io/settarhesenli/weatherfit-backend:${{ github.sha }}
-            ghcr.io/settarhesenli/weatherfit-backend:latest
+      - name: Build frontend image
+        run: docker build -t weatherfit-frontend:latest .
 
-      - name: Build and push frontend
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: |
-            ghcr.io/settarhesenli/weatherfit-frontend:${{ github.sha }}
-            ghcr.io/settarhesenli/weatherfit-frontend:latest
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl apply -f k8s/mongodb.yaml
+          kubectl apply -f k8s/backend.yaml
+          kubectl apply -f k8s/frontend.yaml
+          kubectl -n weatherfit rollout status deployment/weatherfit-backend
+          kubectl -n weatherfit rollout status deployment/weatherfit-frontend
